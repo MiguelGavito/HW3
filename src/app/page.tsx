@@ -1,18 +1,14 @@
 'use client';
 import { useState } from 'react';
+import SearchBar from './components/SearchBar';
 
 export default function Home() {
-  const [inputValue, setInputValue] = useState('');
-  const [items, setItems] = useState<string[]>([]);
+  const [items, setItems] = useState<{ name: string; temperature: number; condition: string }[]>([]);
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value);
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter' && inputValue.trim() !== '') {
-      setItems([...items, inputValue]);
-      setInputValue('');
+  const handleSearch = async (city: string) => {
+    const weatherData = await fetchWeather(city);
+    if (weatherData) {
+      setItems((prevItems) => [...prevItems, weatherData]);
     }
   };
 
@@ -20,33 +16,47 @@ export default function Home() {
     setItems(items.filter((_, i) => i !== index));
   };
 
+  const fetchWeather = async (city: string) => {
+    const apiKey = 'a0c6764eea434cf5888133734252702';
+    const url = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${city}`;
+  
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Ciudad no encontrada');
+      const data = await response.json();
+      return {
+        name: data.location.name,
+        temperature: data.current.temp_c,
+        condition: data.current.condition.text,
+      };
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  };
+  
   return (
     <main className="flex flex-col items-center justify-center min-h-screen space-y-4 bg-gray-800">
-      <h1 className="text-4xl font-bold text-white">Buscador de Nombres</h1>
-      <input
-        type="text"
-        value={inputValue}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        placeholder="Escribe un nombre y presiona Enter"
-        className="p-2 rounded-md text-gray-800"
-      />
+      <h1 className="text-4xl font-bold text-white">Buscador de Clima</h1>
+      <SearchBar onSearch={handleSearch} />
       <div className="flex flex-wrap gap-4">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between p-4 bg-white rounded shadow text-gray-800"
-            style={{ width: '150px' }}
+      {items.map((item, index) => (
+        <div
+          key={index}
+          className="flex flex-col items-center p-4 bg-white rounded shadow text-gray-800 w-48"
+        >
+          <h2 className="text-lg font-bold">{item.name}</h2>
+          <p>{item.temperature}°C</p>
+          <p>{item.condition}</p>
+          <button
+            onClick={() => handleRemoveItem(index)}
+            className="mt-2 text-red-500"
           >
-            <span>{item}</span>
-            <button
-              onClick={() => handleRemoveItem(index)}
-              className="ml-2 text-red-500"
-            >
-              X
-            </button>
-          </div>
-        ))}
+            X
+          </button>
+        </div>
+      ))}
+
       </div>
     </main>
   );
